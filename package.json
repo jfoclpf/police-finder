@@ -1,5 +1,5 @@
 {
-  "name": "police.finder",
+  "name": "com.police.finder",
   "displayName": "Police Finder",
   "version": "1.0.0",
   "description": "Find the police authority close to you",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/jfoclpf/form-for-parking-violation.git"
+    "url": "git://github.com/jfoclpf/police-finder.git"
   },
   "author": "João Pimentel Ferreira",
   "license": "GPL-3.0",

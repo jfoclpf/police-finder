@@ -7,8 +7,6 @@
 /* global app, device, $, google, performance, DEBUG */
 
 app.map = (function (thisModule) {
-  const requestHistoricUrl = app.main.urls.databaseServer.requestHistoric
-  const requestImageUrl = app.main.urls.databaseServer.requestImage
   var isGoogleMapsApiLoaded = false
 
   var allDbEntries // all entries fetched from database
@@ -31,12 +29,6 @@ app.map = (function (thisModule) {
 
     for (const key in mapOptions) {
       $('#map_view_select').append(`<option value="${key}">${mapOptions[key]}</option>`)
-    }
-
-    // populates yet with type of penalties: faixa_bus, baixa_bus, etc.
-    const penalties = app.penalties.getPenalties()
-    for (const key in penalties) {
-      $('#map_view_select').append(`<option value="${key}">${penalties[key].select}</option>`)
     }
 
     $('#map_view_select').on('change', function () {
@@ -119,7 +111,6 @@ app.map = (function (thisModule) {
     }
 
     // Add the markers and infowindows to the map
-    const isCurrentUserAnAdmin = app.functions.isCurrentUserAnAdmin()
     const dbEntriesLength = dbEntries.length
     for (let i = 0; i < dbEntriesLength; i++) {
       const el = dbEntries[i]
@@ -138,20 +129,7 @@ app.map = (function (thisModule) {
           `<b>Infração</b>: ${app.penalties.getShortDescription(el.base_legal)}<br>` +
           `<b>Autoridade</b>: ${el.autoridade}<br><br>`
 
-      for (var photoIndex = 1; photoIndex <= 4; photoIndex++) {
-        if (el['foto' + photoIndex]) {
-          const photoUrl = requestImageUrl + '/' + el['foto' + photoIndex]
-          htmlInfoContent += `<img width="200" src="${photoUrl}"><br>`
-        }
-      }
-
       htmlInfoContent += '</div>'
-
-      // an admin is able to mark an entry in the db as deleted
-      if (isCurrentUserAnAdmin) {
-        htmlInfoContent += '<hr><b>Opções de administrador:</b><br><br>' +
-          `<button type="button" class="btn btn-primary btn-sm m-1" onclick="app.map.setEntryAsDeletedInDatabase(${i})"><i class="fa fa-trash"></i></button>`
-      }
 
       google.maps.event.addListener(marker, 'click', (function (_marker, _htmlInfoContent) {
         return function () {
@@ -180,38 +158,12 @@ app.map = (function (thisModule) {
   }
 
   function getAllEntries () {
-    $.ajax({
-      url: requestHistoricUrl,
-      type: 'GET',
-      data: { uuid: null }, // because uuid is null, it gets all entries with PROD=1
-      crossDomain: true,
-      success: function (data) {
-        console.log('Data for map obtained from database with success. Returned: ', data)
-        allDbEntries = data
-      },
-      error: function (error) {
-        console.error('There was an error getting the data')
-        console.error(error)
-      }
-    })
-  }
-
-  function setEntryAsDeletedInDatabase (i) {
-    if (app.functions.isCurrentUserAnAdmin()) {
-      app.dbServerLink.setEntryAsDeletedInDatabase(dbEntries[i], (err) => {
-        if (!err) {
-          window.alert('Entrada marcada como apagada')
-        } else {
-          window.alert('Erro a tentar marcar entrada como apagada\n\n' + JSON.stringify(err, {}, 2))
-        }
-      })
-    }
+    /* */
   }
 
   thisModule.init = init
   thisModule.tryToShowMap = tryToShowMap
   thisModule.initGoogleMapLoaded = initGoogleMapLoaded
-  thisModule.setEntryAsDeletedInDatabase = setEntryAsDeletedInDatabase
 
   return thisModule
 })(app.map || {})

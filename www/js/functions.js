@@ -49,24 +49,6 @@ app.functions = (function (thisModule) {
     return newArray
   }
 
-  // initializes date and time with current date and time
-  function updateDateAndTime () {
-    var date = new Date()
-    $('#date').datepicker('setDate', date)
-    var currentTime = pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2)
-    $('#time').val(currentTime)
-  }
-
-  function clearCache () {
-    // clear cache, important, ex: otherwise the images get messed if loaded again
-    window.CacheClear(function (result) {
-      console.debug('cache cleared:' + result)
-    },
-    function (err) {
-      console.debug('cache cleared error:' + err)
-    })
-  }
-
   function isThisAndroid () {
     return device.platform.toLowerCase() === 'android'
   }
@@ -99,8 +81,6 @@ app.functions = (function (thisModule) {
   thisModule.clean_message = clean_message
   thisModule.pad = pad
   thisModule.cleanArray = cleanArray
-  thisModule.updateDateAndTime = updateDateAndTime
-  thisModule.clearCache = clearCache
   thisModule.isThisAndroid = isThisAndroid
   thisModule.adaptURItoAndroid = adaptURItoAndroid
   thisModule.setDebugValues = setDebugValues

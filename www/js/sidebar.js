@@ -38,12 +38,6 @@ app.sidebar = (function (thisModule) {
       app.sidebar.toggleSidebar(false)
     })
 
-    $('#historic_show').click(function () {
-      app.historic.updateHistoric()
-      showSection('historic')
-      app.sidebar.toggleSidebar(false)
-    })
-
     $('#map_section_show').click(function () {
       showSection('map_section')
       app.sidebar.toggleSidebar(false)
@@ -53,23 +47,8 @@ app.sidebar = (function (thisModule) {
       app.map.tryToShowMap($('#map_view_select').val())
     })
 
-    $('#form_show').click(function () {
-      showSection('main_form')
-      app.sidebar.toggleSidebar(false)
-    })
-
-    $('#legal_basis_show').click(function () {
-      showSection('legal_basis')
-      app.sidebar.toggleSidebar(false)
-    })
-
-    $('#cmd_how_it_works_show').click(function () {
-      showSection('cmd_how_it_works')
-      app.sidebar.toggleSidebar(false)
-    })
-
-    $('#cmd_legal_basis_shows').click(function () {
-      showSection('cmd_legal_basis')
+    $('#show_police_authorities').click(function () {
+      showSection('main_show')
       app.sidebar.toggleSidebar(false)
     })
 
