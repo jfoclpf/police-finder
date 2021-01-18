@@ -3,7 +3,7 @@
 [js-standard-style_img]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg
 [js-standard-style_url]: https://standardjs.com/
 
-# Police finder
+# Chama a Polícia!
 
 Aplicação móvel para procurar a autoridade policial próxima de si.
 

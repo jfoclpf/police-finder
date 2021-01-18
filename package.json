@@ -1,6 +1,6 @@
 {
   "name": "com.police.finder",
-  "displayName": "Police Finder",
+  "displayName": "Chama a Polícia!",
   "version": "1.0.0",
   "description": "Find the police authority close to you",
   "scripts": {
