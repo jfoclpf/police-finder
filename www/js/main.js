@@ -4,13 +4,6 @@
 
 var DEBUG = true
 
-/* tries to use built-in browser plugin to authentication;
-when false uses OS default browser with a simple url link;
-option `true` is not working, check:
-https://github.com/apache/cordova-plugin-inappbrowser/issues/498 */
-var AUTHENTICATION_WITH_IN_APP_BROWSER = false
-
-console.log('AUTHENTICATION_WITH_IN_APP_BROWSER: ', AUTHENTICATION_WITH_IN_APP_BROWSER)
 console.success = (message) => { console.log('%c ' + message, 'color: green; font-weight:bold') }
 
 var app = {}
@@ -20,12 +13,6 @@ app.main = (function (thisModule) {
 
   thisModule.variables = {} // global object used for debug
   thisModule.urls = {
-    Chave_Movel_Digital: {
-      aderir: 'https://www.autenticacao.gov.pt/cmd-pedido-chave',
-      a_minha_area: 'https://www.autenticacao.gov.pt/a-chave-movel-digital',
-      assinar_pdf: 'https://cmd.autenticacao.gov.pt/Ama.Authentication.Frontend/Processes/DigitalSignature/DigitalSignatureIntro.aspx',
-      app: 'https://play.google.com/store/apps/details?id=pt.ama.autenticacaogov&hl=pt'
-    },
     androidPlayStore: 'https://play.google.com/store/apps/details?id=com.police.finder'
   }
 
@@ -98,6 +85,7 @@ app.main = (function (thisModule) {
     app.localization.loadMapsApi()
 
     app.map.init()
+    app.contactsFunctions.init()
 
     if (DEBUG) {
       app.functions.setDebugValues()
@@ -117,7 +105,6 @@ app.main = (function (thisModule) {
 
   function onResume () {
     console.log('onResume')
-    app.authentication.onAppResume()
     app.localization.loadMapsApi()
   }
 

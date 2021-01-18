@@ -14,6 +14,7 @@ function onGoogleMapsApiLoaded () {
 app.localization = (function (thisModule) {
   var isGoogleMapsApiLoaded = false
   var Latitude, Longitude
+  var googleMapsKey
 
   function loadMapsApi () {
     if (!navigator.onLine || isGoogleMapsApiLoaded) {
@@ -23,7 +24,7 @@ app.localization = (function (thisModule) {
     // to get a Google maps Key visit https://console.cloud.google.com/apis/credentials
 
     // get randomly a KEY from the array
-    var googleMapsKey = GOOGLE_MAPS_API_KEYS[Math.floor(Math.random() * GOOGLE_MAPS_API_KEYS.length)]
+    googleMapsKey = GOOGLE_MAPS_API_KEYS[Math.floor(Math.random() * GOOGLE_MAPS_API_KEYS.length)]
     console.log(googleMapsKey)
 
     const googleMapsApiJsUrl = 'https://maps.googleapis.com/maps/api/js'
@@ -33,11 +34,9 @@ app.localization = (function (thisModule) {
     isGoogleMapsApiLoaded = true
   }
 
-  // botão get address by GPS (Atualizar)
-  $('#getCurrentAddresBtn').click(function () {
-    getGeolocation()
-    app.functions.updateDateAndTime()
-  })
+  function getGoogleMapsKey () {
+    return googleMapsKey
+  }
 
   /* Geo location functions */
   function getGeolocation () {
@@ -51,13 +50,15 @@ app.localization = (function (thisModule) {
     }
   }
 
+  // from here position is known
   function getPosition (position) {
     var latitude = position.coords.latitude
     Latitude = latitude
     var longitude = position.coords.longitude
     Longitude = longitude
     console.log('latitude, longitude: ', latitude, longitude)
-    getAuthoritiesFromGMap(latitude, longitude) // Pass the latitude and longitude to get address.
+    getAuthoritiesFromGMap(latitude, longitude) // Pass the latitude and longitude to get address
+    app.findDistances.calculateDistancesToAuthorities(latitude, longitude, googleMapsKey)
   }
 
   // to be used from outside of this module
@@ -71,15 +72,12 @@ app.localization = (function (thisModule) {
 
   function PositionError () {
     $.jAlert({
-      title: 'Erro na obtenção do local da ocorrência!',
+      title: 'Erro na obtenção do seu local!',
       theme: 'red',
       content: 'Confirme se tem o GPS ligado e autorizado, e se tem acesso à Internet. Caso contrário pode introduzir manualmente o Concelho, Local (rua, travessa, etc.) e número de porta da ocorrência.'
     })
     GPSLoadingOnFields(false)
   }
-
-  /* Get address by coordinates */
-  thisModule.AUTHORITIES = [] // array of possible authorities applicable for that area
 
   function getAuthoritiesFromGMap (latitude, longitude) {
     var reverseGeocoder = new google.maps.Geocoder()
@@ -88,7 +86,7 @@ app.localization = (function (thisModule) {
       if (status === google.maps.GeocoderStatus.OK) {
         if (results[0]) {
           var addressComponents = results[0].address_components
-          getAuthoritiesFromAddress(addressComponents)
+          fillFormAddress(addressComponents)
         } else {
           PositionError()
         }
@@ -98,8 +96,7 @@ app.localization = (function (thisModule) {
     })
   }
 
-  function getAuthoritiesFromAddress (addressComponents) {
-    thisModule.AUTHORITIES = []
+  function fillFormAddress (addressComponents) {
     var geoNames = [] // array of possible names for the locale, for example ["Lisboa", "Odivelas"]
 
     if (addressComponents !== undefined) {
@@ -123,7 +120,7 @@ app.localization = (function (thisModule) {
       console.log('postal_code from Goolge Maps is ' + postalCodeFromGmaps, typeof postalCodeFromGmaps)
 
       // from the Postal Code got from GPS/Google
-      // tries to get locality using the offline Data Base (see file contacts.js)
+      // tries to get locality using the offline Data Base (see file locales.js)
       var dataFromDB = getDataFromPostalCode(postalCodeFromGmaps)
 
       var localityFromDB = dataFromDB.locality
@@ -157,40 +154,8 @@ app.localization = (function (thisModule) {
 
     geoNames = app.functions.cleanArray(geoNames) // removes empty strings
     console.log('geoNames :', geoNames)
-    // to check JS apply, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
-    thisModule.AUTHORITIES.push.apply(thisModule.AUTHORITIES, app.contactsFunctions.getPMcontacts(geoNames))
-    thisModule.AUTHORITIES.push.apply(thisModule.AUTHORITIES, app.contactsFunctions.getGNRcontacts(geoNames))
-    thisModule.AUTHORITIES.push.apply(thisModule.AUTHORITIES, app.contactsFunctions.getPSPcontacts(geoNames))
-
-    var PSPGeral = {
-      authority: 'Polícia',
-      authorityShort: 'Polícia de Segurança Pública',
-      nome: 'Geral',
-      contacto: 'contacto@psp.pt'
-    }
-    var GNRGeral = {
-      authority: 'Guarda Nacional Republicana',
-      authorityShort: 'GNR',
-      nome: 'Comando Geral',
-      contacto: 'gnr@gnr.pt'
-    }
-    thisModule.AUTHORITIES.push(PSPGeral)
-    thisModule.AUTHORITIES.push(GNRGeral)
-
-    console.log('AUTHORITIES :', thisModule.AUTHORITIES)
-    populateAuthoritySelect(thisModule.AUTHORITIES)
 
     GPSLoadingOnFields(false)
-  }
-
-  function populateAuthoritySelect (arrayAuthorities) {
-    $('#authority').empty() // empty select options
-    $.each(arrayAuthorities, function (index, value) {
-      $('#authority').append($('<option>', {
-        value: index,
-        text: value.authorityShort + ' - ' + value.nome
-      }))
-    })
   }
 
   // gets "street_number", "route", "locality", "country", "postal_code", "administrative_area_level_2"(concelho)
@@ -222,17 +187,17 @@ app.localization = (function (thisModule) {
 
     var key, locality, municipality, municipalityCode
 
-    for (key in app.contacts.Localities) {
-      if (app.contacts.Localities[key].postalCode === postalCode) {
-        locality = app.contacts.Localities[key].locality
-        municipalityCode = app.contacts.Localities[key].municipality
+    for (key in app.locales.Localities) {
+      if (app.locales.Localities[key].postalCode === postalCode) {
+        locality = app.locales.Localities[key].locality
+        municipalityCode = app.locales.Localities[key].municipality
         break
       }
     }
 
-    for (key in app.contacts.Municipalities) {
-      if (app.contacts.Municipalities[key].code === municipalityCode) {
-        municipality = app.contacts.Municipalities[key].name
+    for (key in app.locales.Municipalities) {
+      if (app.locales.Municipalities[key].code === municipalityCode) {
+        municipality = app.locales.Municipalities[key].name
         break
       }
     }
@@ -292,10 +257,12 @@ app.localization = (function (thisModule) {
 
   /* === Public methods to be returned === */
   thisModule.loadMapsApi = loadMapsApi
+  thisModule.PositionError = PositionError
+  thisModule.getGoogleMapsKey = getGoogleMapsKey
   thisModule.getGeolocation = getGeolocation
   thisModule.getPosition = getPosition
   thisModule.getCoordinates = getCoordinates
-  thisModule.getAuthoritiesFromAddress = getAuthoritiesFromAddress
+  thisModule.fillFormAddress = fillFormAddress
   thisModule.convertDMSStringInfoToDD = convertDMSStringInfoToDD
 
   return thisModule

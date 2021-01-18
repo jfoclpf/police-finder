@@ -118,7 +118,7 @@ app.show = (function (thisModule) {
   })
 
   $('#locality').focusout(function () {
-    app.localization.getAuthoritiesFromAddress()
+    app.localization.fillFormAddress()
   })
 
   $('#street').on('input', function () {
