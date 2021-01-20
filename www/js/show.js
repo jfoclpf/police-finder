@@ -27,10 +27,6 @@ app.show = (function (thisModule) {
     return $('#street_number').val() ? $('#street_number').val() : ''
   }
 
-  function getAuthority () {
-    return $('#authority option:selected').text()
-  }
-
   /* ********************************************************************** */
   /* ******************* IS FORM CORRECTLY FILLED  ************************ */
   // returns true if all the fields and inputs in the form are filled in and ready to write the message
@@ -143,7 +139,6 @@ app.show = (function (thisModule) {
   thisModule.getLocality = getLocality
   thisModule.getStreetName = getStreetName
   thisModule.getStreetNumber = getStreetNumber
-  thisModule.getAuthority = getAuthority
   /* ======================================== */
   thisModule.isMessageReady = isMessageReady
 

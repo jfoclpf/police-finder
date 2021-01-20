@@ -85,13 +85,7 @@ app.text = (function (thisModule) {
 
   function getNameOfCurrentSelectedAuthority () {
     // Authority
-    var authority, authorityName
-    var index = $('#authority').val()
-
-    authority = app.localization.AUTHORITIES[index].authority
-    authorityName = app.localization.AUTHORITIES[index].nome
-
-    return authority + ', ' + authorityName
+    /* to develop */
   }
 
   function getRandomGreetings () {
