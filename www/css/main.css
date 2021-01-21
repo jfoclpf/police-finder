@@ -17,6 +17,11 @@ h1 {
   font-size: 200%;
 }
 
+.header-title {
+  font-size: 7vw;
+  font-weight: 500;
+}
+
 .lead{
   text-align: justify;
 }
@@ -68,12 +73,6 @@ input[type="number"] {
   display: none;
 }
 
-#historic img {
-  border: 0;
-  width: 100%;
-  display: block;
-}
-
 #map_section, #map {
   height: 100%;
   width: 100%;
@@ -83,13 +82,6 @@ input[type="number"] {
 
 #map .gm-style-iw.gm-style-iw-c {
   max-width: none !important;
-}
-
-#cmd_how_it_works img{
-  border: none !important;
-  width: 100%;
-  padding: 10px 0 !important;
-  display: block !important;
 }
 
 /* remove buttons */
@@ -120,6 +112,12 @@ button#save_personal_data {
   font-size: 0.82em;
 }
 
+.btn-authorities-list {
+  height: 50px;
+  width: 50px;
+  font-size: 22px;
+}
+
 /* Image Designing Propoerties */
 .thumb {
   height: 75px;
@@ -143,8 +141,4 @@ button#save_personal_data {
   background-size: 25px 25px;
   background-position:right center;
   background-repeat: no-repeat;
-}
-
-#cmd_how_it_works a {
-  text-decoration: underline;
 }
