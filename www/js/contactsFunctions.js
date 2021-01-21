@@ -1,4 +1,4 @@
-/* global app, $ */
+/* global app, cordova, $ */
 
 app.contactsFunctions = (function (thisModule) {
   var contactsGNR
@@ -12,11 +12,11 @@ app.contactsFunctions = (function (thisModule) {
     var d1 = $.Deferred()
     var d2 = $.Deferred()
 
-    $.getJSON('/json/gnr.json', function (data) {
+    $.getJSON(cordova.file.applicationDirectory + 'www/json/gnr.json', function (data) {
       contactsGNR = data
       d1.resolve()
     })
-    $.getJSON('/json/psp.json', function (data) {
+    $.getJSON(cordova.file.applicationDirectory + 'www/json/psp.json', function (data) {
       contactsPSP = data
       d2.resolve()
     })
