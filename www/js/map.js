@@ -4,7 +4,7 @@
    These complaints are anonymously stored in the database             */
 
 /* eslint camelcase: off */
-/* global app, cordova, $, google, performance, DEBUG */
+/* global app, cordova, $, google, performance */
 
 app.map = (function (thisModule) {
   var isGoogleMapsApiLoaded = false
