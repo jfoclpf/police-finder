@@ -46,9 +46,9 @@ app.findDistances = (function (thisModule) {
         return 0
       })
 
-      // filter authorities, we just want two types
+      // filter authorities, we just want some types
       var filteredAuthoritiesSortedByDirectDistance = authoritiesSortedByDirectDistance.filter((authority) => {
-        return authority.tipo === 'Quartel GNR' || authority.tipo === 'Esquadra de Polícia'
+        return authority.tipo === 'Quartel GNR' || authority.tipo === 'Esquadra de Polícia' || authority.tipo === 'Posto de Polícia'
       })
 
       var selectedAuthorities = []
@@ -89,6 +89,14 @@ app.findDistances = (function (thisModule) {
             }
             return 0
           })
+
+          // remove duplicates
+          authoritiesSortedByRoadDistance = authoritiesSortedByRoadDistance.filter((auth, index, self) =>
+            index === self.findIndex((t) => (
+              t.tipo === auth.tipo && t.telefone === auth.telefone &&
+                t.latitude === auth.latitude && t.longitude === auth.longitude
+            ))
+          )
 
           showAuthorities(authoritiesSortedByRoadDistance)
         })

@@ -7,7 +7,7 @@
 function onGoogleMapsApiLoaded () {
   // get from GPS Address information
   app.localization.getGeolocation()
-  app.map.initGoogleMapLoaded()
+  app.map.onGoogleMapsApiLoaded()
 }
 /* eslint-enable no-unused-vars */
 

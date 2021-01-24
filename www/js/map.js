@@ -4,13 +4,13 @@
    These complaints are anonymously stored in the database             */
 
 /* eslint camelcase: off */
-/* global app, device, $, google, performance, DEBUG */
+/* global app, cordova, $, google, performance, DEBUG */
 
 app.map = (function (thisModule) {
   var isGoogleMapsApiLoaded = false
 
-  var allDbEntries // all entries fetched from database
-  var dbEntries // entries filtered according to user selection
+  var allAuthorities // fetched from JSON files
+  var filteredAuthorities
 
   // to measure performance
   var tLoadMapInit
@@ -23,8 +23,9 @@ app.map = (function (thisModule) {
 
     // populate select box to select map view, i.e, filter ocurrences/drops in the map
     var mapOptions = {
-      all: 'Todas as ocorrências',
-      mine: 'Apenas as minhas denúncias'
+      all: 'Todas as autoridades',
+      'Quartel GNR': 'Quartel GNR',
+      'Esquadra de Polícia': 'Esquadra da PSP'
     }
 
     for (const key in mapOptions) {
@@ -37,16 +38,16 @@ app.map = (function (thisModule) {
   }
 
   // this funcion is run when the API is loaded, see file js/localization.js
-  function initGoogleMapLoaded () {
+  function onGoogleMapsApiLoaded () {
     isGoogleMapsApiLoaded = true
   }
 
-  // does not show map until the Google API script and the DB entries are loaded
+  // does not show map until the Google API script and the entries are loaded
   // this done on the beginning
   function tryToShowMap (selectOption) {
-    if (!isGoogleMapsApiLoaded || !allDbEntries) {
+    if (!isGoogleMapsApiLoaded || !allAuthorities) {
       setTimeout(() => {
-        if (isGoogleMapsApiLoaded && allDbEntries) {
+        if (isGoogleMapsApiLoaded && allAuthorities) {
           showMap(selectOption)
         } else {
           tryToShowMap(selectOption)
@@ -65,7 +66,7 @@ app.map = (function (thisModule) {
     // get coordinates for the map center
     var currentLocation = app.localization.getCoordinates() // current position of user
     var latitude, longitude
-    if (currentLocation.latitude && currentLocation.longitude && !DEBUG) {
+    if (currentLocation.latitude && currentLocation.longitude) {
       latitude = currentLocation.latitude
       longitude = currentLocation.longitude
     } else {
@@ -79,7 +80,7 @@ app.map = (function (thisModule) {
       disableDefaultUI: true,
       streetViewControl: false,
       gestureHandling: 'greedy',
-      zoom: 8,
+      zoom: 12,
       restriction: {
         latLngBounds: {
           east: -6,
@@ -93,43 +94,52 @@ app.map = (function (thisModule) {
 
     const map = new google.maps.Map(document.getElementById('map'), mapOptions)
 
-    // get filtered array of db entries according to selected Option (filter)
-    dbEntries = []
+    // get filtered array of authorities according to selected Option (filter)
+    filteredAuthorities = []
     if (!selectOption || selectOption === 'all') {
-      dbEntries = allDbEntries
+      filteredAuthorities = allAuthorities
     } else {
-      const allDbEntriesLength = allDbEntries.length
-      for (let i = 0; i < allDbEntriesLength; i++) {
-        const el = allDbEntries[i]
-
-        if (selectOption === 'mine' && el.uuid === device.uuid) {
-          dbEntries.push(el)
-        } else if (selectOption === el.base_legal) {
-          dbEntries.push(el)
+      const allAuthoritiesLength = allAuthorities.length
+      for (let i = 0; i < allAuthoritiesLength; i++) {
+        if (selectOption === allAuthorities[i].tipo) {
+          filteredAuthorities.push(allAuthorities[i])
         }
       }
     }
 
     // Add the markers and infowindows to the map
-    const dbEntriesLength = dbEntries.length
-    for (let i = 0; i < dbEntriesLength; i++) {
-      const el = dbEntries[i]
+    const filteredAuthoritiesLength = filteredAuthorities.length
+    const gnrMapIconUrl = cordova.file.applicationDirectory + 'www/img/gnr-icon-map.png'
+    const pspMapIconUrl = cordova.file.applicationDirectory + 'www/img/psp-icon-map.png'
+    for (let i = 0; i < filteredAuthoritiesLength; i++) {
+      const authority = filteredAuthorities[i]
+
+      let icon
+      if (authority.tipo === 'Quartel GNR') {
+        icon = gnrMapIconUrl
+      } else if (authority.tipo === 'Esquadra de Polícia' || authority.tipo === 'Posto de Polícia') {
+        icon = pspMapIconUrl
+      }
 
       const marker = new google.maps.Marker({
-        position: { lat: el.data_coord_latit, lng: el.data_coord_long },
+        position: { lat: parseFloat(authority.latitude), lng: parseFloat(authority.longitude) },
         map: map,
-        icon: 'file:///android_asset/www/img/map_icon.png'
+        icon: icon
       })
 
-      let htmlInfoContent =
-        '<div style="width:200px">' +
-          `<b>Veículo</b>: ${el.carro_marca} ${el.carro_modelo} <span style="white-space: nowrap;">[${el.carro_matricula}]</span><br>` +
-          `<b>Local</b>: ${el.data_local} n. ${el.data_num_porta}, ${el.data_concelho}<br>` +
-          `<b>Data</b>: ${(new Date(el.data_data)).toLocaleDateString('pt-PT')} às ${el.data_hora.slice(0, 5)}<br>` +
-          `<b>Infração</b>: ${app.penalties.getShortDescription(el.base_legal)}<br>` +
-          `<b>Autoridade</b>: ${el.autoridade}<br><br>`
-
-      htmlInfoContent += '</div>'
+      const htmlInfoContent =
+        `<div style="width:200px">
+          <b>${authority.designacao}</b><br>
+          <b>Tipo</b>: ${authority.tipo}<br>
+          ${authority.horario ? '<b>Horário</b>: ' + authority.horario + '<br>' : ''}
+          <b>Morada</b>: ${authority.morada}, <span style="white-space: nowrap;">${authority.codigopostal} ${authority.localidadepostal}</span><br>
+          <b>Telefone</b>: ${authority.telefone}<br>
+          ${authority.email.includes('@') ? `<b>E-mail</b>: ${authority.email}<br>` : ''}
+          <div class="d-flex justify-content-around">
+            <button type="button" class="mt-2 fa fa-phone btn btn-success" onclick="app.map.phoneAuthority(${i})"></button>
+            ${authority.email.includes('@') ? `<button type="button" class="mt-2 fa fa-envelope btn btn-success" onclick="app.map.sendEmailToAuthority(${i})"></button>` : ''}
+          </div>
+        </div>`
 
       google.maps.event.addListener(marker, 'click', (function (_marker, _htmlInfoContent) {
         return function () {
@@ -139,6 +149,13 @@ app.map = (function (thisModule) {
         }
       })(marker, htmlInfoContent))
     }
+
+    // current user location
+    const userPosMarker = new google.maps.Marker({ // eslint-disable-line no-unused-vars
+      position: { lat: currentLocation.latitude, lng: currentLocation.longitude },
+      map: map,
+      icon: cordova.file.applicationDirectory + 'www/img/map-location-user.png'
+    })
 
     // when map is loaded
     map.addListener('tilesloaded', function () {
@@ -157,13 +174,32 @@ app.map = (function (thisModule) {
     })
   }
 
+  function phoneAuthority (i) {
+    cordova.InAppBrowser.open(`tel:${parseInt(filteredAuthorities[i].telefone)}`, '_system')
+  }
+
+  function sendEmailToAuthority (i) {
+    cordova.InAppBrowser.open(`mailto:${filteredAuthorities[i].email}`, '_system')
+  }
+
   function getAllEntries () {
-    /* */
+    app.contactsFunctions.loadPoliceContacts(function (err, contacts) {
+      if (err) {
+        console.error('error on loadPoliceContacts')
+        return
+      }
+
+      const contactsGNR = contacts.contactsGNR
+      const contactsPSP = contacts.contactsPSP
+      allAuthorities = contactsGNR.concat(contactsPSP) // concatenates arrays
+    })
   }
 
   thisModule.init = init
   thisModule.tryToShowMap = tryToShowMap
-  thisModule.initGoogleMapLoaded = initGoogleMapLoaded
+  thisModule.onGoogleMapsApiLoaded = onGoogleMapsApiLoaded
+  thisModule.phoneAuthority = phoneAuthority
+  thisModule.sendEmailToAuthority = sendEmailToAuthority
 
   return thisModule
 })(app.map || {})
