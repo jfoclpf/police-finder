@@ -22,7 +22,7 @@ app.localization = (function (thisModule) {
     $.getScript(`${googleMapsApiJsUrl}?key=${googleMapsKey}&callback=app.localization.onGoogleMapsApiLoaded&language=pt`)
       .done(() => {})
       .fail((jqxhr, settings, exception) => {
-        PositionError('O ficheiro JS do Goole API não foi obtido com sucesso dos servidores do Google')
+        PositionError('O ficheiro dos Mapas do Google API não foi obtido com sucesso dos servidores do Google')
       })
 
     // this flag should be here otherwise the script might be loaded several times, and Google refuses it
@@ -48,7 +48,7 @@ app.localization = (function (thisModule) {
     } else if (!navigator.onLine) {
       PositionError('O GPS do seu dispositivo não está ativo ou autorizado')
     } else if (!isGoogleMapsApiLoaded) {
-      PositionError('Ainda não foi possível obter o API dos mapas do Google')
+      PositionError('Ainda não foi possível obter o API dos Mapas do Google')
     }
   }
 
