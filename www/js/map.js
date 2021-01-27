@@ -115,9 +115,9 @@ app.map = (function (thisModule) {
       const authority = filteredAuthorities[i]
 
       let icon
-      if (authority.tipo === 'Quartel GNR') {
+      if (authority.autoridade === 'GNR') {
         icon = gnrMapIconUrl
-      } else if (authority.tipo === 'Esquadra de Polícia' || authority.tipo === 'Posto de Polícia') {
+      } else if (authority.autoridade === 'PSP') {
         icon = pspMapIconUrl
       }
 
