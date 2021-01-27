@@ -6,13 +6,9 @@ app.findDistances = (function (thisModule) {
 
   var authoritiesToShow
 
-  $('#refresh-authorities').click((e) => {
+  $('#refresh-btn').click((e) => {
     $('#authorities_list').empty()
-    const googleMapsKey = app.localization.getGoogleMapsKey()
-    const coordinates = app.localization.getCoordinates()
-    const latitude = coordinates.latitude
-    const longitude = coordinates.longitude
-    calculateDistancesToAuthorities(latitude, longitude, googleMapsKey)
+    app.localization.getGeolocation()
   })
 
   // pre-select 25 authorities based on distances given by coordinates, and
