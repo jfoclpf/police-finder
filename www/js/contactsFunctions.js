@@ -14,16 +14,25 @@ app.contactsFunctions = (function (thisModule) {
 
     $.getJSON(cordova.file.applicationDirectory + 'www/json/gnr.json', function (data) {
       contactsGNR = data
+      const length = contactsGNR.length
+      for (let i = 0; i < length; i++) {
+        contactsGNR[i].autoridade = 'GNR'
+      }
       d1.resolve()
     })
     $.getJSON(cordova.file.applicationDirectory + 'www/json/psp.json', function (data) {
       contactsPSP = data
+      const length = contactsPSP.length
+      for (let i = 0; i < length; i++) {
+        contactsPSP[i].autoridade = 'PSP'
+      }
       d2.resolve()
     })
 
     $.when(d1, d2).then(function () {
       if (typeof callback === 'function') {
-        callback(null, { contactsGNR, contactsPSP })
+        const allAuthorities = contactsGNR.concat(contactsPSP) // concatenates arrays
+        callback(null, allAuthorities)
       }
     }, function () {
       if (typeof callback === 'function') {

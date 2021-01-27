@@ -189,9 +189,7 @@ app.map = (function (thisModule) {
         return
       }
 
-      const contactsGNR = contacts.contactsGNR
-      const contactsPSP = contacts.contactsPSP
-      allAuthorities = contactsGNR.concat(contactsPSP) // concatenates arrays
+      allAuthorities = contacts // concatenates arrays
     })
   }
 

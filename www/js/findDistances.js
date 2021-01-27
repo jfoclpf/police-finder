@@ -21,9 +21,7 @@ app.findDistances = (function (thisModule) {
         return
       }
 
-      const contactsGNR = contacts.contactsGNR
-      const contactsPSP = contacts.contactsPSP
-      const authoritiesContacts = contactsGNR.concat(contactsPSP) // concatenates arrays
+      const authoritiesContacts = contacts // concatenates arrays
 
       // pre-select authorities based on distances given by coordinates
       const authoritiesContactsLength = authoritiesContacts.length
