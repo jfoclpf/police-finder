@@ -2,15 +2,6 @@
 
 /* global app, $, google, GOOGLE_MAPS_API_KEYS */
 
-/* eslint-disable no-unused-vars */
-/* this function is global because of gmaps api */
-function onGoogleMapsApiLoaded () {
-  // get from GPS Address information
-  app.localization.getGeolocation()
-  app.map.onGoogleMapsApiLoaded()
-}
-/* eslint-enable no-unused-vars */
-
 app.localization = (function (thisModule) {
   var isGoogleMapsApiLoaded = false
   var Latitude, Longitude
@@ -28,10 +19,19 @@ app.localization = (function (thisModule) {
     console.log(googleMapsKey)
 
     const googleMapsApiJsUrl = 'https://maps.googleapis.com/maps/api/js'
-    $.getScript(`${googleMapsApiJsUrl}?key=${googleMapsKey}&callback=onGoogleMapsApiLoaded&language=pt`)
+    $.getScript(`${googleMapsApiJsUrl}?key=${googleMapsKey}&callback=app.localization.onGoogleMapsApiLoaded&language=pt`)
+      .done(() => {})
+      .fail((jqxhr, settings, exception) => {
+        PositionError('O ficheiro JS do Goole API não foi obtido com sucesso dos servidores do Google')
+      })
 
     // this flag should be here otherwise the script might be loaded several times, and Google refuses it
     isGoogleMapsApiLoaded = true
+  }
+
+  function onGoogleMapsApiLoaded () {
+    getGeolocation()
+    app.map.onGoogleMapsApiLoaded()
   }
 
   function getGoogleMapsKey () {
@@ -45,8 +45,10 @@ app.localization = (function (thisModule) {
       GPSLoadingOnFields(true) // truns on loading icon on the fields
       var options = { timeout: 30000, enableHighAccuracy: true }
       navigator.geolocation.getCurrentPosition(getPosition, PositionError, options)
-    } else {
-      PositionError()
+    } else if (!navigator.onLine) {
+      PositionError('O GPS do seu dispositivo não está ativo ou autorizado')
+    } else if (!isGoogleMapsApiLoaded) {
+      PositionError('Ainda não foi possível obter o API dos mapas do Google')
     }
   }
 
@@ -70,11 +72,18 @@ app.localization = (function (thisModule) {
     return coordinates
   }
 
-  function PositionError () {
+  function PositionError (msg) {
+    var message
+    if (msg) {
+      message = msg + '!<br>'
+    } else {
+      message = ''
+    }
+
     $.jAlert({
       title: 'Erro na obtenção do seu local!',
       theme: 'red',
-      content: 'Confirme se tem o GPS ligado e autorizado, e se tem acesso à Internet. Caso contrário pode introduzir manualmente o Concelho, Local (rua, travessa, etc.) e número de porta da ocorrência.'
+      content: message + 'Confirme se tem o GPS ligado e autorizado, e se tem acesso à Internet.'
     })
     GPSLoadingOnFields(false)
   }
@@ -88,10 +97,10 @@ app.localization = (function (thisModule) {
           var addressComponents = results[0].address_components
           fillFormAddress(addressComponents)
         } else {
-          PositionError()
+          PositionError('O Google API não devolveu resultados')
         }
       } else {
-        PositionError()
+        PositionError('O estatuto do Google API não retornou OK')
       }
     })
   }
@@ -257,6 +266,7 @@ app.localization = (function (thisModule) {
 
   /* === Public methods to be returned === */
   thisModule.loadMapsApi = loadMapsApi
+  thisModule.onGoogleMapsApiLoaded = onGoogleMapsApiLoaded
   thisModule.PositionError = PositionError
   thisModule.getGoogleMapsKey = getGoogleMapsKey
   thisModule.getGeolocation = getGeolocation
