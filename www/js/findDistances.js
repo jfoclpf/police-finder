@@ -42,7 +42,11 @@ app.findDistances = (function (thisModule) {
 
       // filter authorities, we just want some types
       var filteredAuthoritiesSortedByDirectDistance = authoritiesSortedByDirectDistance.filter((authority) => {
-        return authority.tipo === 'Quartel GNR' || authority.tipo === 'Esquadra de Polícia' || authority.tipo === 'Posto de Polícia'
+        return authority.tipo === 'Quartel GNR' ||
+          authority.tipo === 'Esquadra de Polícia' ||
+          authority.tipo === 'Posto de Polícia' ||
+          authority.tipo === 'Esquadra de Segurança' ||
+          authority.tipo === 'Segurança a instalações'
       })
 
       var selectedAuthorities = []
