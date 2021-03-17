@@ -13,7 +13,10 @@ app.main = (function (thisModule) {
 
   thisModule.variables = {} // global object used for debug
   thisModule.urls = {
-    androidPlayStore: 'https://play.google.com/store/apps/details?id=com.police.finder'
+    androidPlayStore: 'https://play.google.com/store/apps/details?id=com.police.finder',
+    openStreetMaps: {
+      nominatimReverse: 'https://nominatim.openstreetmap.org/reverse'
+    }
   }
 
   $(document).ready(function () {

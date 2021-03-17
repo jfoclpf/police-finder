@@ -2,7 +2,6 @@
 
 app.findDistances = (function (thisModule) {
   const maximumNumberOfAuthoritiesShownOnResults = 10
-  const maximumNumberOfDestinationsForGMapsAPI = 20
 
   var authoritiesToShow
 
@@ -13,7 +12,7 @@ app.findDistances = (function (thisModule) {
 
   // pre-select 25 authorities based on distances given by coordinates, and
   // then output the 5 closest authorities considering the distances given by google maps (roads)
-  function calculateDistancesToAuthorities (latitude, longitude, googleMapsKey) {
+  function calculateDistancesToAuthorities (latitude, longitude) {
     // fetch contacts of police authorities
     app.contactsFunctions.loadPoliceContacts(function (err, contacts) {
       if (err) {
@@ -26,7 +25,11 @@ app.findDistances = (function (thisModule) {
       // pre-select authorities based on distances given by coordinates
       const authoritiesContactsLength = authoritiesContacts.length
       for (let i = 0; i < authoritiesContactsLength; i++) {
-        authoritiesContacts[i].directDistance = getDistanceFromLatLonInKm(latitude, longitude, parseFloat(authoritiesContacts[i].latitude), parseFloat(authoritiesContacts[i].longitude))
+        authoritiesContacts[i].directDistance = getDistanceFromLatLonInKm(
+          latitude, longitude,
+          parseFloat(authoritiesContacts[i].latitude),
+          parseFloat(authoritiesContacts[i].longitude)
+        )
       }
 
       // sort array of authorities by distance (as crows fly, direct) to destination
@@ -49,73 +52,47 @@ app.findDistances = (function (thisModule) {
           authority.tipo === 'Segurança a instalações'
       })
 
+      // remove duplicates
+      filteredAuthoritiesSortedByDirectDistance = filteredAuthoritiesSortedByDirectDistance.filter((auth, index, self) =>
+        index === self.findIndex((t) => (
+          t.tipo === auth.tipo &&
+          t.telefone === auth.telefone &&
+          t.latitude === auth.latitude &&
+          t.longitude === auth.longitude
+        ))
+      )
+
       var selectedAuthorities = []
-      var selectedAuthoritiesCoords = []
-      for (let i = 0; i < filteredAuthoritiesSortedByDirectDistance.length && i < maximumNumberOfDestinationsForGMapsAPI; i++) {
+      for (let i = 0;
+        i < filteredAuthoritiesSortedByDirectDistance.length && i < maximumNumberOfAuthoritiesShownOnResults;
+        i++) {
         const authority = filteredAuthoritiesSortedByDirectDistance[i]
         selectedAuthorities.push(authority)
-        selectedAuthoritiesCoords.push(`${authority.latitude},${authority.longitude}`)
       }
 
       if (selectedAuthorities.length === 0) {
         showNoResults('Sem resultados relevantes, considerando a sua localização')
-        return
+      } else {
+        showAuthorities(selectedAuthorities)
       }
-
-      // now gets distances based on google maps (using roads)
-      const googleMapsApiDistancesUrl = 'https://maps.googleapis.com/maps/api/distancematrix/json'
-      $.get(`${googleMapsApiDistancesUrl}?key=${googleMapsKey}&language=pt-PT&origins=${latitude},${longitude}&destinations=${selectedAuthoritiesCoords.join('|')}`,
-        function (result) {
-          if (result.rows.length === 0) {
-            showNoResults('Sem resultados relevantes, considerando a sua localização')
-            return
-          }
-
-          var elements = result.rows[0].elements
-          for (let i = 0; i < selectedAuthorities.length; i++) {
-            selectedAuthorities[i].distance = elements[i].distance
-            selectedAuthorities[i].duration = elements[i].duration
-            selectedAuthorities[i].status = elements[i].status
-          }
-          // sort array of authorities by distance (google maps, i.e. roads) to destination
-          var authoritiesSortedByRoadDistance = selectedAuthorities.sort((a, b) => {
-            if (a.distance.value < b.distance.value) {
-              return -1
-            }
-            if (a.distance.value > b.distance.value) {
-              return 1
-            }
-            return 0
-          })
-
-          // remove duplicates
-          authoritiesSortedByRoadDistance = authoritiesSortedByRoadDistance.filter((auth, index, self) =>
-            index === self.findIndex((t) => (
-              t.tipo === auth.tipo && t.telefone === auth.telefone &&
-                t.latitude === auth.latitude && t.longitude === auth.longitude
-            ))
-          )
-
-          showAuthorities(authoritiesSortedByRoadDistance)
-        })
     })
   }
 
   // these are the distances given by google maps, considering roads
   function showAuthorities (authorities) {
-    console.log(authorities)
     authoritiesToShow = authorities
+    console.log('authoritiesToShow: ', authoritiesToShow)
 
     $('#authorities_list').find('*').off() // removes all event handlers
     $('#authorities_list').empty()
 
-    for (let i = 0; i < authorities.length && i < maximumNumberOfAuthoritiesShownOnResults; i++) {
+    for (let i = 0; i < authorities.length; i++) {
       const authority = authorities[i]
       $('#authorities_list').append(`
         <div class="p-3 border-element authorities_list_element" data-index="${i}">
           <b>${authority.designacao}</b><br>
           <b>Tipo</b>: ${authority.tipo}<br>
-          <b>Distância</b>: ${authority.distance.text}<br>
+          <b>Distância</b>: ${authority.directDistance.toFixed(0)} km<br>
           ${authority.horario ? '<b>Horário</b>: ' + authority.horario + '<br>' : ''}
           <b>Morada</b>: ${authority.morada}, <span style="white-space: nowrap;">${authority.codigopostal} ${authority.localidadepostal}</span><br>
           <b>Telefone</b>: ${authority.telefone}<br>
