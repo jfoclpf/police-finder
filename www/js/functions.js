@@ -1,6 +1,6 @@
 /* eslint camelcase: off */
 
-/* global app, cordova, $, device, ADMIN_DEVICE_UUIDs */
+/* global app, cordova, $, device */
 
 app.functions = (function (thisModule) {
   // to run on startup
@@ -14,11 +14,6 @@ app.functions = (function (thisModule) {
         return path
       }
     }
-  }
-
-  // tell if current user is an authorized admin
-  function isCurrentUserAnAdmin () {
-    return ADMIN_DEVICE_UUIDs && ADMIN_DEVICE_UUIDs.includes(device.uuid)
   }
 
   // limpar a mensagem para o email, remove HTML tags,
@@ -77,7 +72,6 @@ app.functions = (function (thisModule) {
 
   /* === Public methods to be returned === */
   thisModule.addFunctionsToPlugins = addFunctionsToPlugins
-  thisModule.isCurrentUserAnAdmin = isCurrentUserAnAdmin
   thisModule.clean_message = clean_message
   thisModule.pad = pad
   thisModule.cleanArray = cleanArray
