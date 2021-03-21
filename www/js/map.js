@@ -4,32 +4,45 @@
    These complaints are anonymously stored in the database             */
 
 /* eslint camelcase: off */
-/* global app, cordova, $, google, performance */
+/* eslint no-prototype-builtins: off */
+/* global app, cordova, $, performance, L, DEBUG */
 
 app.map = (function (thisModule) {
-  var isGoogleMapsApiLoaded = false
+  var map
+  var markersGroups // groups of markers, by type of occurence
+  var isMapInitiated = false
 
   var allAuthorities // fetched from JSON files
-  var filteredAuthorities
-
-  // to measure performance
-  var tLoadMapInit
-  var tLoadMapEnd
 
   function init () {
     // to get all entries to show on the map, it does it in the init in the background
     // after opening the app for faster processing when user clicks on map section
-    getAllEntries()
+    var tLoadMapInit = performance.now() // to measure performance
+    getAllEntries((err, contacts) => {
+      if (err) {
+        console.error(err)
+      } else {
+        allAuthorities = contacts
+        processMapMarkers()
+        initializeMap(() => {
+          isMapInitiated = true
+          console.log('Processing map took ' + Math.round(performance.now() - tLoadMapInit) + ' milliseconds')
+        })
+      }
+    })
 
     // populate select box to select map view, i.e, filter ocurrences/drops in the map
-    var mapOptions = {
-      all: 'Todas as autoridades',
-      'Quartel GNR': 'Quartel GNR',
-      'Esquadra de Polícia': 'Esquadra da PSP'
+    markersGroups = {
+      all: { select: 'Todas as autoridades' },
+      'Quartel GNR': { select: 'Quartéis da GNR' },
+      'Esquadra de Polícia': { select: 'Esquadras de Polícia' }
     }
 
-    for (const key in mapOptions) {
-      $('#map_view_select').append(`<option value="${key}">${mapOptions[key]}</option>`)
+    // populates select box
+    for (const key in markersGroups) {
+      if (markersGroups.hasOwnProperty(key)) {
+        $('#map_view_select').append(`<option value="${key}">${markersGroups[key].select}</option>`)
+      }
     }
 
     $('#map_view_select').on('change', function () {
@@ -37,17 +50,11 @@ app.map = (function (thisModule) {
     })
   }
 
-  // this funcion is run when the API is loaded, see file js/localization.js
-  function onGoogleMapsApiLoaded () {
-    isGoogleMapsApiLoaded = true
-  }
-
-  // does not show map until the Google API script and the entries are loaded
-  // this done on the beginning
+  // does not show map until the DB entries are loaded
   function tryToShowMap (selectOption) {
-    if (!isGoogleMapsApiLoaded || !allAuthorities) {
+    if (!isMapInitiated) {
       setTimeout(() => {
-        if (isGoogleMapsApiLoaded && allAuthorities) {
+        if (isMapInitiated) {
           showMap(selectOption)
         } else {
           tryToShowMap(selectOption)
@@ -60,13 +67,30 @@ app.map = (function (thisModule) {
 
   // selectOption can be: 'all', 'mine' or the respective legal basis ('passeios', 'na_passadeira', etc.)
   function showMap (selectOption) {
-    tLoadMapInit = performance.now()
-    tLoadMapEnd = null
+    // clears all layers from previous selections
+    for (const key in markersGroups) {
+      if (
+        markersGroups.hasOwnProperty(key) &&
+        markersGroups[key].markerClusterGroup &&
+        markersGroups[key].markerClusterGroup.getLayers().length
+      ) {
+        map.removeLayer(markersGroups[key].markerClusterGroup)
+      }
+    }
 
+    if (
+      markersGroups[selectOption] &&
+      markersGroups[selectOption].markerClusterGroup.getLayers().length
+    ) {
+      map.addLayer(markersGroups[selectOption].markerClusterGroup)
+    }
+  }
+
+  function initializeMap (callback) {
     // get coordinates for the map center
     var currentLocation = app.localization.getCoordinates() // current position of user
     var latitude, longitude
-    if (currentLocation.latitude && currentLocation.longitude) {
+    if (currentLocation.latitude && currentLocation.longitude && !DEBUG) {
       latitude = currentLocation.latitude
       longitude = currentLocation.longitude
     } else {
@@ -76,56 +100,85 @@ app.map = (function (thisModule) {
     }
 
     const mapOptions = {
-      center: { lat: latitude, lng: longitude },
-      disableDefaultUI: true,
-      streetViewControl: false,
-      gestureHandling: 'greedy',
-      zoom: 12,
-      restriction: {
-        latLngBounds: {
-          east: -6,
-          north: 44,
-          south: 34,
-          west: -10
-        },
-        strictBounds: true
-      }
+      center: [latitude, longitude],
+      zoom: 8,
+      maxBounds: L.latLngBounds(L.latLng(43.882057, -11.030141), L.latLng(35.942436, -4.104133)),
+      zoomControl: false,
+      attributionControl: false,
+      closePopupOnClick: false
     }
 
-    const map = new google.maps.Map(document.getElementById('map'), mapOptions)
+    map = L.map('map', mapOptions)
 
-    // get filtered array of authorities according to selected Option (filter)
-    filteredAuthorities = []
-    if (!selectOption || selectOption === 'all') {
-      filteredAuthorities = allAuthorities
-    } else {
-      const allAuthoritiesLength = allAuthorities.length
-      for (let i = 0; i < allAuthoritiesLength; i++) {
-        if (selectOption === allAuthorities[i].tipo) {
-          filteredAuthorities.push(allAuthorities[i])
-        }
-      }
-    }
+    // add the OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      minZoom: 6,
+      subdomains: ['a', 'b', 'c']
+    }).addTo(map)
 
-    // Add the markers and infowindows to the map
-    const filteredAuthoritiesLength = filteredAuthorities.length
-    const gnrMapIconUrl = cordova.file.applicationDirectory + 'www/img/gnr-icon-map.png'
-    const pspMapIconUrl = cordova.file.applicationDirectory + 'www/img/psp-icon-map.png'
-    for (let i = 0; i < filteredAuthoritiesLength; i++) {
-      const authority = filteredAuthorities[i]
+    setInterval(function () {
+      map.invalidateSize()
+    }, 500)
 
-      let icon
-      if (authority.autoridade === 'GNR') {
-        icon = gnrMapIconUrl
-      } else if (authority.autoridade === 'PSP') {
-        icon = pspMapIconUrl
-      }
-
-      const marker = new google.maps.Marker({
-        position: { lat: parseFloat(authority.latitude), lng: parseFloat(authority.longitude) },
-        map: map,
-        icon: icon
+    map.on('popupopen', function (e) {
+      $('img.photo-in-popup').on('load', function () {
+        e.popup.update()
       })
+    })
+
+    // when map is loaded
+    map.whenReady(function () {
+      // adjust height of map_section div, the heigh of map should be the height of content
+      // minus the height of header and minus height of a spacer (<hr>)
+      var height = window.innerHeight - // screen useful height
+        $('#content hr').outerHeight(true) - // spacer between header and lower section
+        $('#content .container-fluid.section-head.d-flex.flex-row').outerHeight(true) - // header
+        ($('#content').innerWidth() - $('#content').width()) // pading of #content
+
+      $('#map_section').css('height', height + 'px')
+      map.invalidateSize()
+      callback()
+    })
+  }
+
+  function processMapMarkers () {
+    // create an array for each type of occurence
+    for (const key in markersGroups) {
+      if (markersGroups.hasOwnProperty(key)) {
+        markersGroups[key].markerClusterGroup = L.markerClusterGroup(
+          { disableClusteringAtZoom: 12, spiderfyOnMaxZoom: false }
+        )
+      }
+    }
+
+    // Sort markers and infowindows to the map
+    const allAuthoritiesLength = allAuthorities.length
+    const gnrMapIcon = L.icon({
+      iconUrl: cordova.file.applicationDirectory + 'www/img/gnr-icon-map.png',
+      iconSize: [42, 60],
+      iconAnchor: [21, 60]
+    })
+    const pspMapIcon = L.icon({
+      iconUrl: cordova.file.applicationDirectory + 'www/img/psp-icon-map.png',
+      iconSize: [42, 60],
+      iconAnchor: [21, 60]
+    })
+
+    for (let i = 0; i < allAuthoritiesLength; i++) {
+      const authority = allAuthorities[i]
+
+      let mapIcon
+      if (authority.autoridade === 'GNR') {
+        mapIcon = gnrMapIcon
+      } else if (authority.autoridade === 'PSP') {
+        mapIcon = pspMapIcon
+      }
+
+      const marker = L.marker(
+        [parseFloat(authority.latitude), parseFloat(authority.longitude)],
+        { icon: mapIcon }
+      )
 
       const htmlInfoContent =
         `<div style="width:200px">
@@ -136,66 +189,44 @@ app.map = (function (thisModule) {
           <b>Telefone</b>: ${authority.telefone}<br>
           ${authority.email.includes('@') ? `<b>E-mail</b>: ${authority.email}<br>` : ''}
           <div class="d-flex justify-content-around">
-            <button type="button" class="mt-2 fa fa-phone btn btn-success" onclick="app.map.phoneAuthority(${i})"></button>
-            ${authority.email.includes('@') ? `<button type="button" class="mt-2 fa fa-envelope btn btn-success" onclick="app.map.sendEmailToAuthority(${i})"></button>` : ''}
+            <button type="button" class="mt-2 fa fa-phone btn btn-success" onclick="app.map.phoneAuthority('${authority.telefone}')"></button>
+            ${authority.email.includes('@') ? `<button type="button" class="mt-2 fa fa-envelope btn btn-success" onclick="app.map.sendEmailToAuthority('${authority.email}')"></button>` : ''}
           </div>
         </div>`
 
-      google.maps.event.addListener(marker, 'click', (function (_marker, _htmlInfoContent) {
-        return function () {
-          const infowindow = new google.maps.InfoWindow()
-          infowindow.setContent(_htmlInfoContent)
-          infowindow.open(map, _marker)
-        }
-      })(marker, htmlInfoContent))
-    }
+      const popup = L.popup({ closeOnClick: false, autoClose: false, autoPan: false, maxHeight: 400 })
+        .setContent(htmlInfoContent)
 
-    // current user location
-    const userPosMarker = new google.maps.Marker({ // eslint-disable-line no-unused-vars
-      position: { lat: currentLocation.latitude, lng: currentLocation.longitude },
-      map: map,
-      icon: cordova.file.applicationDirectory + 'www/img/map-location-user.png'
-    })
+      marker.bindPopup(popup)
 
-    // when map is loaded
-    map.addListener('tilesloaded', function () {
-      if (!tLoadMapEnd) {
-        tLoadMapEnd = performance.now()
-        console.log('Loading map took ' + (tLoadMapEnd - tLoadMapInit) + ' milliseconds.')
+      if (markersGroups[authority.tipo]) {
+        markersGroups[authority.tipo].markerClusterGroup.addLayer(marker)
       }
-      // adjust height of map_section div, the heigh of map should be the height of content
-      // minus the height of header and minus height of a spacer (<hr>)
-      var height = window.innerHeight - // screen useful height
-        $('#content hr').outerHeight(true) - // spacer between header and lower section
-        $('#content .container-fluid.section-head.d-flex.flex-row').outerHeight(true) - // header
-        ($('#content').innerWidth() - $('#content').width()) // pading of #content
-
-      $('#map_section').css('height', height + 'px')
-    })
+      markersGroups.all.markerClusterGroup.addLayer(marker)
+    }
   }
 
-  function phoneAuthority (i) {
-    cordova.InAppBrowser.open(`tel:${parseInt(filteredAuthorities[i].telefone)}`, '_system')
+  function phoneAuthority (telefone) {
+    cordova.InAppBrowser.open(`tel:${parseInt(telefone)}`, '_system')
   }
 
-  function sendEmailToAuthority (i) {
-    cordova.InAppBrowser.open(`mailto:${filteredAuthorities[i].email}`, '_system')
+  function sendEmailToAuthority (email) {
+    cordova.InAppBrowser.open(`mailto:${email}`, '_system')
   }
 
-  function getAllEntries () {
+  function getAllEntries (callback) {
     app.contactsFunctions.loadPoliceContacts(function (err, contacts) {
       if (err) {
         console.error('error on loadPoliceContacts')
-        return
+        callback(err)
+      } else {
+        callback(null, contacts)
       }
-
-      allAuthorities = contacts // concatenates arrays
     })
   }
 
   thisModule.init = init
   thisModule.tryToShowMap = tryToShowMap
-  thisModule.onGoogleMapsApiLoaded = onGoogleMapsApiLoaded
   thisModule.phoneAuthority = phoneAuthority
   thisModule.sendEmailToAuthority = sendEmailToAuthority
 
