@@ -1,7 +1,7 @@
 {
   "name": "com.police.finder",
   "displayName": "Chama a Polícia!",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Find the police authority close to you",
   "scripts": {
     "test": "standard && node test/convertHbsToHtml.js && html-validate test/www/index.html && printf '\\n\\nTest OK\\n\\n'",
